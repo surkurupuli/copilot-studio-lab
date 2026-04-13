@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab: Copilot Studio Agent Flows – Chuck Norris Joke API</title>
+<style>
+  :root {
+    --blue: #0078d4;
+    --blue-light: #eff6fc;
+    --blue-dark: #004578;
+    --text: #1b1b1b;
+    --text-muted: #444;
+    --border: #d1d1d1;
+    --bg: #ffffff;
+    --bg-page: #f5f5f5;
+    --tip-bg: #eff6fc;
+    --tip-border: #0078d4;
+    --warn-bg: #fff4ce;
+    --warn-border: #f7b900;
+    --note-bg: #f3f2f1;
+    --note-border: #8a8886;
+    --code-bg: #f3f2f1;
+    --success: #107c10;
+    --header-h: 56px;
+    --sidebar-w: 260px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg-page);
+  }
+
+  /* ── Header ── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--blue-dark);
+    color: #fff;
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.2);
+  }
+  header .logo {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    opacity: .9;
+    white-space: nowrap;
+  }
+  header .sep { opacity: .4; font-size: 18px; }
+  header .title { font-size: 13px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Layout ── */
+  .layout {
+    display: flex;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: calc(100vh - var(--header-h));
+  }
+
+  /* ── Sidebar ── */
+  aside {
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: var(--header-h);
+    height: calc(100vh - var(--header-h));
+    overflow-y: auto;
+  }
+  aside h2 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    padding: 0 20px 8px;
+  }
+  aside nav a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 20px;
+    font-size: 14px;
+    color: var(--text);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: background .1s, border-color .1s;
+  }
+  aside nav a:hover { background: var(--blue-light); }
+  aside nav a.active { border-left-color: var(--blue); background: var(--blue-light); color: var(--blue); font-weight: 600; }
+  aside nav .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  aside nav a.active .step-num { background: var(--blue-dark); }
+
+  /* ── Main content ── */
+  main {
+    flex: 1;
+    background: var(--bg);
+    padding: 40px 48px 80px;
+    min-width: 0;
+  }
+
+  /* ── Breadcrumb ── */
+  .breadcrumb {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .breadcrumb a { color: var(--blue); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+
+  /* ── Page heading ── */
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--blue-dark);
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .meta span { display: flex; align-items: center; gap: 5px; }
+
+  .intro {
+    font-size: 15px;
+    color: var(--text-muted);
+    border-left: 3px solid var(--blue);
+    padding: 12px 16px;
+    background: var(--blue-light);
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 32px;
+  }
+
+  /* ── Section headings ── */
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--blue-dark);
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 24px 0 10px;
+    color: var(--text);
+  }
+
+  /* ── Steps ── */
+  .steps { counter-reset: step; list-style: none; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .steps li .content { flex: 1; }
+  .steps li .content p { margin-bottom: 8px; }
+
+  p { margin-bottom: 12px; }
+
+  /* ── UI labels (bold inline) ── */
+  .ui { font-weight: 600; }
+
+  /* ── Code / inline code ── */
+  code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    color: #c7254e;
+    white-space: nowrap;
+  }
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 16px 20px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 12px 0;
+    position: relative;
+  }
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    font-size: inherit;
+    white-space: pre;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: #3c3c3c;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .copy-btn:hover { background: #555; color: #fff; }
+
+  /* ── Callouts ── */
+  .callout {
+    border-left: 4px solid;
+    padding: 12px 16px;
+    border-radius: 0 4px 4px 0;
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .callout strong { display: block; margin-bottom: 4px; }
+  .callout.tip { background: var(--tip-bg); border-color: var(--tip-border); }
+  .callout.warning { background: var(--warn-bg); border-color: var(--warn-border); }
+  .callout.note { background: var(--note-bg); border-color: var(--note-border); }
+  .callout.important { background: #fde7e9; border-color: #c42b1c; }
+
+  /* ── Field table ── */
+  .field-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  .field-table th { background: var(--code-bg); padding: 8px 12px; text-align: left; font-weight: 600; border: 1px solid var(--border); }
+  .field-table td { padding: 8px 12px; border: 1px solid var(--border); }
+  .field-table td:first-child { font-weight: 600; white-space: nowrap; }
+  .field-table tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── Architecture diagram ── */
+  .arch {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 24px 0;
+  }
+  .arch-box {
+    background: var(--blue-light);
+    border: 2px solid var(--blue);
+    border-radius: 8px;
+    padding: 12px 18px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue-dark);
+    min-width: 110px;
+  }
+  .arch-arrow {
+    font-size: 22px;
+    color: var(--blue);
+    padding: 0 6px;
+    font-weight: 300;
+  }
+  .arch-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+    display: block;
+    margin-top: 3px;
+  }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0;
+    padding-left: 16px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-left: 2px solid var(--blue);
+    padding-left: 20px;
+    position: relative;
+  }
+  .flow-step::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--blue);
+  }
+  .flow-step .badge {
+    background: var(--blue);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .flow-step span { font-size: 14px; }
+
+  /* ── JSON sample ── */
+  .json-key { color: #9cdcfe; }
+  .json-str { color: #ce9178; }
+  .json-highlight { color: #4ec9b0; font-weight: 700; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { margin-bottom: 32px; }
+  .progress-label { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .progress-bar { height: 6px; background: var(--code-bg); border-radius: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: var(--blue); border-radius: 3px; width: 0%; transition: width .5s; }
+
+  /* ── Summary card ── */
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 24px; }
+  .summary-card { background: var(--blue-light); border: 1px solid #c7e0f4; border-radius: 8px; padding: 16px; }
+  .summary-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .summary-card h4 { font-size: 14px; font-weight: 600; color: var(--blue-dark); margin-bottom: 4px; }
+  .summary-card p { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    aside { display: none; }
+    main { padding: 24px 20px 60px; }
+    h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📘 Training Lab</div>
+  <div class="sep">›</div>
+  <div class="title">Copilot Studio Agent Flows – Chuck Norris Joke API</div>
+</header>
+
+<div class="layout">
+
+  <aside>
+    <h2>Lab Contents</h2>
+    <nav id="sidenav">
+      <a href="#overview" class="active"><span class="step-num">i</span>Overview</a>
+      <a href="#step1"><span class="step-num">1</span>Create a Copilot Agent</a>
+      <a href="#step2"><span class="step-num">2</span>Configure Agent Settings</a>
+      <a href="#step3"><span class="step-num">3</span>Create an Agent Flow</a>
+      <a href="#step4"><span class="step-num">4</span>Add HTTP Action</a>
+      <a href="#step5"><span class="step-num">5</span>Parse the JSON Response</a>
+      <a href="#step6"><span class="step-num">6</span>Return Joke to Agent</a>
+      <a href="#step7"><span class="step-num">7</span>Connect Flow to Agent</a>
+      <a href="#step8"><span class="step-num">8</span>Test End-to-End</a>
+      <a href="#summary"><span class="step-num">✓</span>Summary</a>
+    </nav>
+  </aside>
+
+  <main>
+
+    <div class="breadcrumb">
+      <a href="#">Home</a> › <span>Copilot Studio Agent Flows</span>
+    </div>
+
+    <h1>Build an Agent Flow that calls a REST API</h1>
+
+    <div class="meta">
+      <span>⏱ Estimated time: 45–60 minutes</span>
+      <span>📊 Level: Intermediate</span>
+      <span>🔑 Prerequisites: Copilot Studio license or trial</span>
+    </div>
+
+    <div class="intro">
+      In this exercise you will build a <strong>Copilot Studio Agent Flow</strong> that calls the public Chuck Norris Joke REST API and returns a random joke to the user. You will create a Copilot agent, build the agent flow with an HTTP action, parse the JSON response, and connect everything together.
+    </div>
+
+    <!-- ── ARCHITECTURE ── -->
+    <section id="overview">
+      <h2>Architecture overview</h2>
+      <p>The solution uses four components working in sequence:</p>
+
+      <div class="arch">
+        <div class="arch-box">👤 User<span class="arch-label">Asks for a joke</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box">🤖 Copilot Agent<span class="arch-label">Understands intent</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box">⚡ Agent Flow<span class="arch-label">HTTP GET request</span></div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-box">🌐 Chuck Norris API<span class="arch-label">Returns JSON</span></div>
+      </div>
+
+      <div class="flow">
+        <div class="flow-step"><span class="badge">Trigger</span><span>User asks agent: <em>"Tell me a Chuck Norris joke"</em></span></div>
+        <div class="flow-step"><span class="badge">Agent</span><span>Agent recognises intent and invokes the registered agent flow as a tool</span></div>
+        <div class="flow-step"><span class="badge">HTTP</span><span>Flow sends <code>GET https://api.chucknorris.io/jokes/random</code></span></div>
+        <div class="flow-step"><span class="badge">Parse</span><span>Flow extracts the <code>value</code> field from the JSON response</span></div>
+        <div class="flow-step"><span class="badge">Respond</span><span>Flow returns the joke text back to the agent, which forwards it to the user</span></div>
+      </div>
+
+      <div class="callout note">
+        <strong>💡 About the API</strong>
+        <code>https://api.chucknorris.io/jokes/random</code> is a free, public API that requires no authentication or API key — perfect for demos and training exercises.
+      </div>
+    </section>
+
+    <!-- ── STEP 1 ── -->
+    <section id="step1">
+      <h2>Step 1: Create a new Copilot agent</h2>
+
+      <ol class="steps">
+        <li>
+          <div class="content">
+            <p>In a web browser, navigate to <strong>Copilot Studio</strong> at <code>https://copilotstudio.microsoft.com/</code> and sign in with your Microsoft 365 account when prompted.</p>
+            <div class="callout note"><strong>Note</strong> If the page shows a welcome tour, dismiss it before continuing.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Verify the correct <strong>Environment</strong> is selected. The environment name is displayed in the top-right area of the header bar (e.g., <em>Dev</em> or your organisation's environment). If the wrong environment is shown, click it and select the correct one from the drop-down.</p>
+            <div class="callout note"><strong>Note</strong> If the top navigation bar does not load fully, press <strong>F5</strong> to refresh your browser.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>On the Copilot Studio home page, locate the text field labelled <span class="ui">Start building by describing what your agent needs to do</span> and type the following prompt exactly:</p>
+            <pre><code>Tell me a random Chuck Norris joke from the internet</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Press <strong>Enter</strong> or click the <span class="ui">Send</span> (➤) button. Copilot Studio will use generative AI to auto-generate a name, description, and instructions for your agent.</p>
+            <div class="callout tip"><strong>💡 Tip</strong> If you prefer to configure everything manually, click <span class="ui">Skip to configure</span> instead. You can then enter the name, description and instructions yourself in the next step.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Review what was generated. The agent name, description, and instructions panel should now be populated. Do <strong>not</strong> click <span class="ui">Create</span> yet — you will refine the settings in Step 2.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── STEP 2 ── -->
+    <section id="step2">
+      <h2>Step 2: Configure agent settings</h2>
+      <p>Whether you used the AI-generated agent or skipped to configure, verify and set the following fields on the agent overview / configure page:</p>
+
+      <table class="field-table">
+        <thead><tr><th>Field</th><th>Value to enter</th></tr></thead>
+        <tbody>
+          <tr><td>Name</td><td>Chuck Norris Joke Bot</td></tr>
+          <tr><td>Description</td><td>A fun agent that tells random Chuck Norris jokes using a REST API</td></tr>
+          <tr><td>Instructions</td><td>You are a fun assistant. When the user asks for a joke, call the Chuck Norris flow to get a random joke and share it.</td></tr>
+          <tr><td>Language</td><td>English (United States) — default</td></tr>
+        </tbody>
+      </table>
+
+      <ol class="steps">
+        <li>
+          <div class="content">
+            <p>Click the <span class="ui">Edit</span> (pencil) icon next to the <span class="ui">Instructions</span> field if it is not already editable.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Clear any auto-generated text and paste the following instruction exactly:</p>
+            <pre><code>You are a fun assistant. When the user asks for a joke, call the Chuck Norris flow to get a random joke and share it.</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click <span class="ui">Save</span>.</p>
+            <div class="callout tip"><strong>💡 Tip</strong> The <strong>Instructions</strong> field is the most critical setting — it tells the agent <em>when</em> and <em>how</em> to call the flow. Be specific. Vague instructions lead to unreliable triggering.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Scroll down to the <span class="ui">Knowledge</span> section. Toggle <span class="ui">Enable your agent to search all public websites</span> to <strong>Off / Disabled</strong> so the agent relies only on the flow for its response.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click <span class="ui">Create</span> (or <span class="ui">Save</span> if the agent was already created). Wait for the agent to finish provisioning — this usually takes a few seconds.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── STEP 3 ── -->
+    <section id="step3">
+      <h2>Step 3: Create a new agent flow</h2>
+
+      <ol class="steps">
+        <li>
+          <div class="content">
+            <p>In the left navigation of your agent, click <span class="ui">Actions</span> (you may also see this labelled <span class="ui">Tools</span> in newer versions of Copilot Studio).</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click <span class="ui">+ Add an action</span>. A panel slides in from the right.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Select <span class="ui">New agent flow</span>. Copilot Studio opens the Power Automate flow designer in a new browser tab (or embedded panel, depending on version).</p>
+            <div class="callout note"><strong>Note</strong> Agent flows are built directly inside Copilot Studio and use the standard Power Automate designer. The key difference is the trigger type used.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>The flow designer opens with the <span class="ui">Run a flow from Copilot</span> trigger already added. This trigger is mandatory for agent flows — do <strong>not</strong> delete or replace it.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click the flow title (shown at the top of the designer, usually <em>Untitled</em>) and rename it to:</p>
+            <pre><code>Get Chuck Norris Joke</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            <div class="callout tip"><strong>💡 Tip</strong> Descriptive names make it much easier to find and manage flows later, especially in environments with many flows.</div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── STEP 4 ── -->
+    <section id="step4">
+      <h2>Step 4: Add an HTTP action to call the API</h2>
+
+      <ol class="steps">
+        <li>
+          <div class="content">
+            <p>In the flow designer, click <span class="ui">+ New step</span> (or the <strong>+</strong> button below the trigger). The action search panel appears.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>In the search field, type <code>HTTP</code> and press <strong>Enter</strong>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>From the results, select the <span class="ui">HTTP</span> action (listed under the <em>Built-in</em> or <em>HTTP</em> connector — the icon looks like a globe with angle brackets).</p>
+            <div class="callout warning"><strong>⚠️ Premium connector</strong> The HTTP connector is a <strong>premium</strong> connector. Ensure your environment has the appropriate Power Automate licence (e.g. Power Automate Premium, or a Power Apps Premium licence).</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Configure the HTTP action with these exact settings:</p>
+            <table class="field-table">
+              <thead><tr><th>Field</th><th>Value</th></tr></thead>
+              <tbody>
+                <tr><td>Method</td><td><code>GET</code></td></tr>
+                <tr><td>URI</td><td><code>https://api.chucknorris.io/jokes/random</code></td></tr>
+                <tr><td>Headers</td><td><em>Leave empty</em></td></tr>
+                <tr><td>Body</td><td><em>Leave empty — GET requests have no body</em></td></tr>
+                <tr><td>Authentication</td><td><code>None</code></td></tr>
+              </tbody>
+            </table>
+            <div class="callout tip"><strong>💡 Fun fact</strong> The Chuck Norris API (<code>api.chucknorris.io</code>) is completely free and requires no API key or authentication — ideal for demos!</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Verify that the action card shows <code>GET</code> and the URL. The action is now ready.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── STEP 5 ── -->
+    <section id="step5">
+      <h2>Step 5: Parse the JSON response</h2>
+
+      <p>The API returns a JSON object. You need to parse it so Power Automate can reference individual fields by name. Here is an example of a typical response body:</p>
+
+      <pre><code>{
+  <span class="json-key">"icon_url"</span>: <span class="json-str">"https://assets.chucknorris.host/img/avatar/chuck-norris.png"</span>,
+  <span class="json-key">"id"</span>:       <span class="json-str">"abc123xyz"</span>,
+  <span class="json-key">"url"</span>:      <span class="json-str">"https://api.chucknorris.io/jokes/abc123xyz"</span>,
+  <span class="json-key">"value"</span>:    <span class="json-highlight">"Chuck Norris can divide by zero."</span>
+}</code></pre>
+
+      <p>The joke text is in the <code>value</code> field. You will extract only that field.</p>
+
+      <ol class="steps">
+        <li>
+          <div class="content">
+            <p>Below the <span class="ui">HTTP</span> action, click <strong>+</strong> and search for <code>Parse JSON</code>. Select the <span class="ui">Parse JSON</span> action (Data Operations category).</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>In the <span class="ui">Content</span> field, click inside the field and then select <span class="ui">Dynamic content</span>. From the list under <em>HTTP</em>, select <span class="ui">Body</span>. This passes the raw HTTP response body into the parser.</p>
+            <div class="callout note"><strong>Note</strong> If you do not see <em>Body</em> in the dynamic content list, scroll down or search for <code>body</code>.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>In the <span class="ui">Schema</span> field, click <span class="ui">Generate from sample</span>. A dialog box opens.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Paste the following sample JSON response into the dialog:</p>
+            <pre><code>{
+  "icon_url": "https://assets.chucknorris.host/img/avatar/chuck-norris.png",
+  "id": "abc123xyz",
+  "url": "https://api.chucknorris.io/jokes/abc123xyz",
+  "value": "Chuck Norris can divide by zero."
+}</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click <span class="ui">Done</span>. Power Automate generates the JSON schema automatically. You should see a schema with properties including <code>icon_url</code>, <code>id</code>, <code>url</code>, and <code>value</code>.</p>
+            <div class="callout tip"><strong>💡 Tip</strong> You only need the <code>value</code> field for this exercise. The schema is still correct even though it includes extra fields — Parse JSON will simply make all of them available as dynamic content.</div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── STEP 6 ── -->
+    <section id="step6">
+      <h2>Step 6: Return the joke to the agent</h2>
+
+      <p>The final step in the flow is to send the joke text back to the Copilot agent so it can present it to the user.</p>
+
+      <ol class="steps">
+        <li>
+          <div class="content">
+            <p>Below the <span class="ui">Parse JSON</span> action, click <strong>+</strong> and search for <code>Respond to Copilot</code>. Select the action titled <span class="ui">Respond to Copilot</span> or <span class="ui">Respond to agent</span> (the name varies slightly by environment version).</p>
+            <div class="callout note"><strong>Note</strong> This action is specifically designed for agent flows. It does not appear in regular Power Automate flows and is only available because the flow uses the <em>Run a flow from Copilot</em> trigger.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>In the action, click <span class="ui">+ Add an output</span>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Set the output type to <span class="ui">Text</span> (this maps to a <code>string</code> parameter).</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Set the output <span class="ui">Name</span> to <code>joke</code>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click inside the <span class="ui">Value</span> field, then open <span class="ui">Dynamic content</span>. Under <em>Parse JSON</em>, select <span class="ui">value</span>. This maps the parsed <code>value</code> field (the joke text) to the output parameter.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Verify the complete flow looks like this:</p>
+            <div class="flow">
+              <div class="flow-step"><span class="badge">Trigger</span><span>Run a flow from Copilot</span></div>
+              <div class="flow-step"><span class="badge">HTTP</span><span>GET <code>https://api.chucknorris.io/jokes/random</code></span></div>
+              <div class="flow-step"><span class="badge">Parse JSON</span><span>Content: <code>body('HTTP')</code> · Schema: auto-generated</span></div>
+              <div class="flow-step"><span class="badge">Respond</span><span>Output: <code>joke</code> = <code>value</code> from Parse JSON</span></div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click <span class="ui">Save</span> in the top-right corner of the flow designer. Wait for the save to complete (the button shows a spinner briefly).</p>
+            <div class="callout tip"><strong>💡 Tip</strong> After saving, you can click <span class="ui">Test</span> (top-right) and select <span class="ui">Manually</span> to run the flow in isolation and verify the HTTP action returns a valid joke before connecting it to the agent.</div>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── STEP 7 ── -->
+    <section id="step7">
+      <h2>Step 7: Connect the flow to your agent</h2>
+
+      <ol class="steps">
+        <li>
+          <div class="content">
+            <p>Return to the Copilot Studio browser tab where your agent is open. If the tab was closed, navigate to <code>https://copilotstudio.microsoft.com/</code> and open your <em>Chuck Norris Joke Bot</em> agent.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>In the left navigation, click <span class="ui">Actions</span> (or <span class="ui">Tools</span>).</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click <span class="ui">+ Add an action</span>. In the panel that opens, you should see your newly saved <span class="ui">Get Chuck Norris Joke</span> flow listed. If it is not visible, search for it by name.</p>
+            <div class="callout note"><strong>Note</strong> Newly saved flows can take up to 30 seconds to appear in the list. If it does not appear, wait briefly and refresh the panel.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Select <span class="ui">Get Chuck Norris Joke</span> from the list and click <span class="ui">Add</span> (or <span class="ui">Next</span>).</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>You will be prompted to add a <span class="ui">Tool description</span>. This is the text the agent's AI uses to decide <em>when</em> to invoke the flow. Enter:</p>
+            <pre><code>Call this action when the user asks for a Chuck Norris joke</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            <div class="callout important"><strong>⚠️ Important</strong> The tool description is <strong>critical</strong>. The Copilot agent reads this description at runtime to determine which action to call. A vague or missing description means the agent may never trigger the flow. Be specific and use natural language that matches what users are likely to say.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Verify that the flow output parameter <code>joke</code> is visible in the output mapping section. This confirms the connection between the flow's <span class="ui">Respond to agent</span> action and the agent.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Click <span class="ui">Save</span> (or <span class="ui">Finish</span>) to confirm the action registration. The flow now appears in the <span class="ui">Actions</span> list of your agent.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ── STEP 8 ── -->
+    <section id="step8">
+      <h2>Step 8: Test the agent end-to-end</h2>
+
+      <ol class="steps">
+        <li>
+          <div class="content">
+            <p>In the top-right corner of Copilot Studio, click <span class="ui">Test your agent</span>. The <span class="ui">Test</span> pane opens on the right side of the screen.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>In the chat input at the bottom of the test pane, type:</p>
+            <pre><code>Tell me a Chuck Norris joke</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Press <strong>Enter</strong> and observe the following sequence in the test pane:</p>
+            <div class="flow">
+              <div class="flow-step"><span class="badge">1</span><span>Agent receives the message and identifies intent</span></div>
+              <div class="flow-step"><span class="badge">2</span><span>Agent calls the <em>Get Chuck Norris Joke</em> flow (you may see a <em>Running action…</em> indicator)</span></div>
+              <div class="flow-step"><span class="badge">3</span><span>Flow calls the API, parses the response, and returns the <code>joke</code> output</span></div>
+              <div class="flow-step"><span class="badge">4</span><span>Agent presents the joke text to the user</span></div>
+            </div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Verify that the agent's reply contains a joke. The response should look similar to:</p>
+            <blockquote style="border-left: 3px solid var(--border); padding: 10px 16px; color: var(--text-muted); font-style: italic; margin: 12px 0; font-size: 14px;">
+              Here's one for you! 😎<br><br>
+              "Chuck Norris doesn't read books. He stares them down until he gets the information he wants."
+            </blockquote>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Send the same message again. You should receive a <strong>different</strong> joke each time, because the API returns a random joke on every call.</p>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>Try an alternative phrasing to confirm the agent is robust to variation:</p>
+            <pre><code>Can you tell me something funny about Chuck Norris?</code><button class="copy-btn" onclick="copyCode(this)">Copy</button></pre>
+            <div class="callout tip"><strong>💡 Tip</strong> The agent uses semantic matching — it does not need an exact phrase match. Any message that is close in meaning to <em>"tell me a Chuck Norris joke"</em> should trigger the flow.</div>
+          </div>
+        </li>
+        <li>
+          <div class="content">
+            <p>If the test passes, click <span class="ui">Publish</span> in the top-right to deploy your agent. After publishing, you can share it via <span class="ui">Channels</span> (e.g., Teams, a demo website, or a custom website embed).</p>
+            <div class="callout note"><strong>Note</strong> Publishing requires appropriate Copilot Studio licensing. If you are using a trial, publishing to the Demo Website channel is typically available.</div>
+          </div>
+        </li>
+      </ol>
+
+      <h3>Troubleshooting</h3>
+      <table class="field-table">
+        <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+        <tbody>
+          <tr><td>Agent does not call the flow</td><td>Tool description is too vague</td><td>Edit the action in <em>Actions</em> and update the description to be more specific</td></tr>
+          <tr><td>Flow fails at HTTP step</td><td>Premium connector not licensed</td><td>Check the environment has a Power Automate Premium or Power Apps Premium plan</td></tr>
+          <tr><td>Parse JSON fails</td><td>Content mapped to wrong field</td><td>Confirm <em>Content</em> is set to <code>body('HTTP')</code> (Body from HTTP action)</td></tr>
+          <tr><td>Output not received by agent</td><td><em>Respond to agent</em> output type wrong</td><td>Ensure output type is <em>Text</em> and the value is <code>value</code> from Parse JSON</td></tr>
+          <tr><td>Flow not visible in Actions list</td><td>Flow not yet saved / indexed</td><td>Wait 30 seconds and refresh the Actions panel</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ── SUMMARY ── -->
+    <section id="summary">
+      <h2>Summary &amp; key takeaways</h2>
+      <p>You have successfully completed the lab. Here is what you built:</p>
+
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="icon">✅</div>
+          <h4>Agent created</h4>
+          <p>Configured in Copilot Studio with a name, description, and precise instructions</p>
+        </div>
+        <div class="summary-card">
+          <div class="icon">⚡</div>
+          <h4>Flow built</h4>
+          <p>Agent flow with HTTP GET, Parse JSON, and Respond to Agent actions in sequence</p>
+        </div>
+        <div class="summary-card">
+          <div class="icon">🔗</div>
+          <h4>Connected</h4>
+          <p>Flow registered as a tool the agent can invoke based on user intent</p>
+        </div>
+        <div class="summary-card">
+          <div class="icon">🎯</div>
+          <h4>Tested</h4>
+          <p>End-to-end test confirmed the joke is returned live from the API</p>
+        </div>
+      </div>
+
+      <h3>Key takeaways</h3>
+      <ul style="margin-left: 20px; margin-top: 12px; line-height: 2;">
+        <li>Agent flows use the <strong>Run a flow from Copilot</strong> trigger — this is mandatory and must not be removed.</li>
+        <li>The <strong>tool description</strong> on a registered action is what the agent's AI reads to decide when to invoke the flow. Write it clearly in natural language.</li>
+        <li>The <strong>HTTP connector</strong> is a premium connector — verify licensing before building in production.</li>
+        <li>Agent flows are <strong>deterministic</strong> — the same execution path every time, making them reliable for external API calls.</li>
+        <li>This same pattern works for <strong>any REST API</strong>: weather, internal CRM, ticket systems, stock prices, and more.</li>
+      </ul>
+
+      <div class="callout tip" style="margin-top: 24px;">
+        <strong>🚀 Challenge — extend the exercise</strong>
+        Try adding a <code>category</code> input parameter to the trigger so the user can request jokes from a specific category (e.g. <em>dev</em>, <em>sport</em>, <em>science</em>). The API supports category filtering via <code>https://api.chucknorris.io/jokes/random?category={category}</code>. You will need to add an input to the trigger, pass it into the HTTP URI, and handle the case where the category is invalid.
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.parentElement;
+    const code = pre.querySelector('code');
+    const text = code.innerText || code.textContent;
+    navigator.clipboard.writeText(text.trim()).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+
+  // Sidebar active link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('aside nav a');
+
+  function setActive() {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 80) current = s.id;
+    });
+    navLinks.forEach(a => {
+      a.classList.toggle('active', a.getAttribute('href') === '#' + current || (current === '' && a.getAttribute('href') === '#overview'));
+    });
+  }
+  window.addEventListener('scroll', setActive, { passive: true });
+  setActive();
+
+  // Smooth scroll
+  navLinks.forEach(a => {
+    a.addEventListener('click', e => {
+      const href = a.getAttribute('href');
+      if (href.startsWith('#')) {
+        e.preventDefault();
+        const target = document.querySelector(href);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>
